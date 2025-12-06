@@ -3,10 +3,12 @@ package com.example;
 import com.example.entity.UserEntity;
 import com.example.service.UserManagementServiceImpl;
 import com.example.config.DatabaseConfigurationManager;
+import com.example.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 
 public class ApplicationMain {
@@ -29,10 +31,10 @@ public class ApplicationMain {
             String userInputValue = myScannerInstance.nextLine().trim();
             
             switch (userInputValue) {
-                case "1" -> addNewUserOperation();
+                case "1" -> addNewUserOperationWithValidation();
                 case "2" -> viewUserDetailsOperation();
                 case "3" -> listAllUsersOperation();
-                case "4" -> editUserOperation();
+                case "4" -> editUserOperationWithValidation();
                 case "5" -> deleteUserOperation();
                 case "6" -> searchUserByEmailOperation();
                 case "0" -> isApplicationRunning = false;
@@ -66,18 +68,67 @@ public class ApplicationMain {
         System.out.print("Выберите опцию: ");
     }
     
-    private void addNewUserOperation() {
+    private void addNewUserOperationWithValidation() {
         System.out.println("\n--- Добавление нового пользователя ---");
+        
+        String userNameInput = null;
+        String userEmailInput = null;
+        Integer userAgeInput = null;
+        
+        while (true) {
+            System.out.print("Введите полное имя (от 2 до 50 букв, или 'отмена' для выхода): ");
+            userNameInput = myScannerInstance.nextLine().trim();
+            
+            if (userNameInput.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
+            
+            if (ValidationUtils.isValidName(userNameInput)) {
+                break;
+            } else {
+                System.out.println("Ошибка: имя должно содержать только буквы и быть от 2 до 50 символов");
+            }
+        }
+        
+        while (true) {
+            System.out.print("Введите email (или 'отмена' для выхода): ");
+            userEmailInput = myScannerInstance.nextLine().trim();
+            
+            if (userEmailInput.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
+            
+            if (ValidationUtils.isValidEmail(userEmailInput)) {
+                break;
+            } else {
+                System.out.println("Ошибка: неверный формат email");
+            }
+        }
+        
+        while (true) {
+            System.out.print("Введите возраст (1-120, или 'отмена' для выхода): ");
+            String ageStr = myScannerInstance.nextLine().trim();
+            
+            if (ageStr.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
+            
+            try {
+                userAgeInput = Integer.parseInt(ageStr);
+                if (ValidationUtils.isValidAge(userAgeInput)) {
+                    break;
+                } else {
+                    System.out.println("Ошибка: возраст должен быть от 1 до 120");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Ошибка: введите число");
+            }
+        }
+        
         try {
-            System.out.print("Введите полное имя: ");
-            String userNameInput = myScannerInstance.nextLine().trim();
-            
-            System.out.print("Введите email: ");
-            String userEmailInput = myScannerInstance.nextLine().trim();
-            
-            System.out.print("Введите возраст: ");
-            int userAgeInput = Integer.parseInt(myScannerInstance.nextLine().trim());
-            
             UserEntity newUser = myUserServiceInstance.registerNewUser(userNameInput, userEmailInput, userAgeInput);
             System.out.println("Пользователь успешно зарегистрирован!");
             System.out.println("ID пользователя: " + newUser.getUserId());
@@ -90,8 +141,15 @@ public class ApplicationMain {
     private void viewUserDetailsOperation() {
         System.out.println("\n--- Просмотр данных пользователя ---");
         try {
-            System.out.print("Введите ID пользователя: ");
-            Long userIdInput = Long.parseLong(myScannerInstance.nextLine().trim());
+            System.out.print("Введите ID пользователя (или 'отмена' для выхода): ");
+            String input = myScannerInstance.nextLine().trim();
+            
+            if (input.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
+            
+            Long userIdInput = Long.parseLong(input);
             
             myUserServiceInstance.getUserByIdValue(userIdInput).ifPresentOrElse(
                 user -> {
@@ -104,8 +162,10 @@ public class ApplicationMain {
                 },
                 () -> System.out.println("Пользователь не найден с ID: " + userIdInput)
             );
-        } catch (Exception myException) {
-            System.out.println("Ошибка: " + myException.getMessage());
+        } catch (NumberFormatException e) {
+            System.out.println("Ошибка: ID должен быть числом");
+        } catch (Exception e) {
+            System.out.println("Ошибка: " + e.getMessage());
         }
     }
     
@@ -136,28 +196,113 @@ public class ApplicationMain {
         }
     }
     
-    private void editUserOperation() {
+    private void editUserOperationWithValidation() {
         System.out.println("\n--- Редактирование пользователя ---");
+        
         try {
-            System.out.print("Введите ID пользователя для редактирования: ");
-            Long userIdInput = Long.parseLong(myScannerInstance.nextLine().trim());
+            System.out.print("Введите ID пользователя для редактирования (или 'отмена' для выхода): ");
+            String idInput = myScannerInstance.nextLine().trim();
             
-            System.out.print("Введите новое имя (нажмите Enter чтобы оставить текущее): ");
-            String userNameInput = myScannerInstance.nextLine().trim();
+            if (idInput.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
             
-            System.out.print("Введите новый email (нажмите Enter чтобы оставить текущий): ");
-            String userEmailInput = myScannerInstance.nextLine().trim();
+            Long userIdInput = Long.parseLong(idInput);
             
-            System.out.print("Введите новый возраст (нажмите Enter чтобы оставить текущий): ");
-            String userAgeInputString = myScannerInstance.nextLine().trim();
-            Integer userAgeInput = userAgeInputString.isEmpty() ? null : Integer.parseInt(userAgeInputString);
+            Optional<UserEntity> existingUserOpt = myUserServiceInstance.getUserByIdValue(userIdInput);
+            if (existingUserOpt.isEmpty()) {
+                System.out.println("Пользователь не найден с ID: " + userIdInput);
+                return;
+            }
+            
+            UserEntity existingUser = existingUserOpt.get();
+            String newUserName = null;
+            String newUserEmail = null;
+            Integer newUserAge = null;
+            
+            while (true) {
+                System.out.print("Введите новое имя (от 2 до 50 букв, нажмите Enter чтобы оставить текущее: '" + 
+                               existingUser.getUserName() + "', или 'отмена' для выхода): ");
+                String userNameInput = myScannerInstance.nextLine().trim();
+                
+                if (userNameInput.equalsIgnoreCase("отмена")) {
+                    System.out.println("Операция отменена.");
+                    return;
+                }
+                
+                if (userNameInput.isEmpty()) {
+                    System.out.println("Имя не изменено.");
+                    break;
+                }
+                
+                if (ValidationUtils.isValidName(userNameInput)) {
+                    newUserName = userNameInput;
+                    break;
+                } else {
+                    System.out.println("Ошибка: имя должно содержать только буквы и быть от 2 до 50 символов");
+                }
+            }
+            
+            while (true) {
+                System.out.print("Введите новый email (нажмите Enter чтобы оставить текущий: '" + 
+                               existingUser.getUserEmail() + "', или 'отмена' для выхода): ");
+                String userEmailInput = myScannerInstance.nextLine().trim();
+                
+                if (userEmailInput.equalsIgnoreCase("отмена")) {
+                    System.out.println("Операция отменена.");
+                    return;
+                }
+                
+                if (userEmailInput.isEmpty()) {
+                    System.out.println("Email не изменен.");
+                    break;
+                }
+                
+                if (ValidationUtils.isValidEmail(userEmailInput)) {
+                    newUserEmail = userEmailInput;
+                    break;
+                } else {
+                    System.out.println("Ошибка: неверный формат email");
+                }
+            }
+            
+            while (true) {
+                System.out.print("Введите новый возраст (1-120, нажмите Enter чтобы оставить текущий: " + 
+                               existingUser.getUserAge() + ", или 'отмена' для выхода): ");
+                String userAgeInputString = myScannerInstance.nextLine().trim();
+                
+                if (userAgeInputString.equalsIgnoreCase("отмена")) {
+                    System.out.println("Операция отменена.");
+                    return;
+                }
+                
+                if (userAgeInputString.isEmpty()) {
+                    System.out.println("Возраст не изменен.");
+                    break;
+                }
+                
+                try {
+                    int age = Integer.parseInt(userAgeInputString);
+                    if (ValidationUtils.isValidAge(age)) {
+                        newUserAge = age;
+                        break;
+                    } else {
+                        System.out.println("Ошибка: возраст должен быть от 1 до 120");
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Ошибка: возраст должен быть числом");
+                }
+            }
             
             UserEntity updatedUser = myUserServiceInstance.modifyUserData(userIdInput, 
-                userNameInput.isEmpty() ? null : userNameInput, 
-                userEmailInput.isEmpty() ? null : userEmailInput, 
-                userAgeInput);
+                newUserName, 
+                newUserEmail, 
+                newUserAge);
             
             System.out.println("Пользователь успешно обновлен!");
+        } catch (NumberFormatException e) {
+            System.out.println("Ошибка: ID должен быть числом");
         } catch (Exception myException) {
             System.out.println("Ошибка: " + myException.getMessage());
         }
@@ -166,8 +311,15 @@ public class ApplicationMain {
     private void deleteUserOperation() {
         System.out.println("\n--- Удаление пользователя ---");
         try {
-            System.out.print("Введите ID пользователя для удаления: ");
-            Long userIdInput = Long.parseLong(myScannerInstance.nextLine().trim());
+            System.out.print("Введите ID пользователя для удаления (или 'отмена' для выхода): ");
+            String input = myScannerInstance.nextLine().trim();
+            
+            if (input.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
+            
+            Long userIdInput = Long.parseLong(input);
             
             System.out.print("Вы уверены? (yes/no): ");
             String confirmationInput = myScannerInstance.nextLine().trim();
@@ -182,6 +334,8 @@ public class ApplicationMain {
             } else {
                 System.out.println("Удаление отменено.");
             }
+        } catch (NumberFormatException e) {
+            System.out.println("Ошибка: ID должен быть числом");
         } catch (Exception myException) {
             System.out.println("Ошибка: " + myException.getMessage());
         }
@@ -190,8 +344,13 @@ public class ApplicationMain {
     private void searchUserByEmailOperation() {
         System.out.println("\n--- Поиск пользователя по Email ---");
         try {
-            System.out.print("Введите email адрес: ");
+            System.out.print("Введите email адрес (или 'отмена' для выхода): ");
             String emailInput = myScannerInstance.nextLine().trim();
+            
+            if (emailInput.equalsIgnoreCase("отмена")) {
+                System.out.println("Операция отменена.");
+                return;
+            }
             
             myUserServiceInstance.findUserByEmailString(emailInput).ifPresentOrElse(
                 user -> {

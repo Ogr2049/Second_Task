@@ -3,6 +3,7 @@ package com.example.service;
 import com.example.entity.UserEntity;
 import com.example.repository.UserRepositoryInterface;
 import com.example.repository.UserRepositoryImplementation;
+import com.example.util.ValidationUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,11 +49,17 @@ public class UserManagementServiceImpl {
             .orElseThrow(() -> new IllegalArgumentException("Пользователь не найден с ID: " + userIdValue));
         
         if (userName != null && !userName.trim().isEmpty()) {
+            if (!ValidationUtils.isValidName(userName)) {
+                throw new IllegalArgumentException("Имя должно содержать только буквы и быть от 2 до 50 символов");
+            }
             existingUserEntity.setUserName(userName.trim());
         }
         
         if (userEmail != null && !userEmail.trim().isEmpty()) {
             String newEmailValue = userEmail.trim();
+            if (!ValidationUtils.isValidEmail(newEmailValue)) {
+                throw new IllegalArgumentException("Неверный формат email");
+            }
             if (!newEmailValue.equals(existingUserEntity.getUserEmail())) {
                 if (myUserRepositoryInstance.checkIfEmailExists(newEmailValue)) {
                     throw new IllegalArgumentException("Email уже используется: " + newEmailValue);
@@ -62,7 +69,9 @@ public class UserManagementServiceImpl {
         }
         
         if (userAge != null) {
-            validateUserAgeValue(userAge);
+            if (!ValidationUtils.isValidAge(userAge)) {
+                throw new IllegalArgumentException("Возраст должен быть от 1 до 120");
+            }
             existingUserEntity.setUserAge(userAge);
         }
         
@@ -84,28 +93,14 @@ public class UserManagementServiceImpl {
     }
     
     private void validateUserInputData(String userName, String userEmail, Integer userAge) {
-        if (userName == null || userName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Имя пользователя обязательно");
+        if (!ValidationUtils.isValidName(userName)) {
+            throw new IllegalArgumentException("Имя должно содержать только буквы и быть от 2 до 50 символов");
         }
-        if (userEmail == null || userEmail.trim().isEmpty()) {
-            throw new IllegalArgumentException("Email адрес обязателен");
-        }
-        if (!isValidEmailFormat(userEmail)) {
+        if (!ValidationUtils.isValidEmail(userEmail)) {
             throw new IllegalArgumentException("Неверный формат email");
         }
-        validateUserAgeValue(userAge);
-    }
-    
-    private void validateUserAgeValue(Integer userAge) {
-        if (userAge == null) {
-            throw new IllegalArgumentException("Возраст обязателен");
-        }
-        if (userAge < 1 || userAge > 120) {
+        if (!ValidationUtils.isValidAge(userAge)) {
             throw new IllegalArgumentException("Возраст должен быть от 1 до 120");
         }
-    }
-    
-    private boolean isValidEmailFormat(String userEmail) {
-        return userEmail.matches("^[A-Za-z0-9+_.-]+@(.+)$");
     }
 }
